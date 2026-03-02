@@ -6,12 +6,13 @@ import useAppStore from "../store/store";
 import { AIChatPanel } from "../components/AIChatPanel";
 import ProblemPanel from "../components/ProblemPanel";
 import SampleDropdown from "../components/SampleDropdown";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { TemplateMarkdownToolbar } from "../components/TemplateMarkdownToolbar";
 import { MarkdownEditorProvider } from "../contexts/MarkdownEditorContext";
 import "../styles/pages/MainContainer.css";
 import html2pdf from "html2pdf.js";
-import { Button, message } from "antd";
+import { Button, message, Tooltip } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import * as monaco from "monaco-editor";
 import { MdFormatAlignLeft, MdChevronRight, MdExpandMore } from "react-icons/md";
 import DOMPurify from "dompurify";
@@ -68,6 +69,7 @@ const MainContainer = () => {
     isDataCollapsed,
     toggleModelCollapse,
     toggleDataCollapse,
+    saveLocally,
   } = useAppStore((state) => ({
     isAIChatOpen: state.isAIChatOpen,
     isEditorsVisible: state.isEditorsVisible,
@@ -78,25 +80,31 @@ const MainContainer = () => {
     isDataCollapsed: state.isDataCollapsed,
     toggleModelCollapse: state.toggleModelCollapse,
     toggleDataCollapse: state.toggleDataCollapse,
+    saveLocally: state.saveLocally,
   }));
 
   const [, setLoading] = useState(true);
+
+  const handleSaveLocally = useCallback(() => {
+    saveLocally();
+    void message.success('State saved locally!');
+  }, [saveLocally]);
 
   // Calculate dynamic panel sizes based on collapse states
   const collapsedCount = [isModelCollapsed, isTemplateCollapsed, isDataCollapsed].filter(Boolean).length;
   const expandedCount = 3 - collapsedCount;
   const collapsedSize = 5;
   const expandedSize = expandedCount > 0 ? (100 - (collapsedCount * collapsedSize)) / expandedCount : 33;
-  
+
   // Create distinct preview background for better visual separation
-  const previewBackgroundColor = backgroundColor === '#ffffff' 
+  const previewBackgroundColor = backgroundColor === '#ffffff'
     ? '#f0f9ff'  // Cool light blue for preview - modern and distinct
     : '#1a1f2e';  // Distinct darker blue-tinted background for preview in dark mode
-  
+
   const previewHeaderColor = backgroundColor === '#ffffff'
     ? '#dbeafe'  // Slightly darker blue for header in light mode
     : '#0f172a';  // Even darker shade for header in dark mode
-  
+
   // Create a key that changes when collapse state changes to force panel re-layout
   const panelKey = `${String(isModelCollapsed)}-${String(isTemplateCollapsed)}-${String(isDataCollapsed)}`;
 
@@ -133,6 +141,17 @@ const MainContainer = () => {
                           </button>
                           <span>Concerto Model</span>
                           <SampleDropdown setLoading={setLoading} />
+                          <Tooltip title="Save current state to browser storage">
+                            <Button
+                              icon={<SaveOutlined />}
+                              onClick={handleSaveLocally}
+                              size="small"
+                              aria-label="Save locally"
+                              style={{ marginLeft: 8 }}
+                            >
+                              Save Locally
+                            </Button>
+                          </Tooltip>
                         </div>
                       </div>
                       {!isModelCollapsed && (
